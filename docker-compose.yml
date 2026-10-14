@@ -1,0 +1,21 @@
+services:
+  bot:
+    build: .
+    image: stock-thesis-bot
+    # Survives crashes, a Docker daemon restart, and a host reboot. Paired with
+    # `systemctl enable docker` on the VM, this is what keeps the bot online
+    # without anyone logging in.
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      # The container is UTC otherwise, and every PDF stamps date.today() onto the
+      # cover and the page footer — an evening pitch would carry yesterday's date.
+      # Set this to your own zone, e.g. Europe/London, America/New_York.
+      TZ: ${TZ:-UTC}
+    # The bot logs at INFO for every pitch. Unbounded json-file logs will slowly
+    # fill the boot volume on a host nobody is watching.
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"

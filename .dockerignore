@@ -1,0 +1,9 @@
+.venv/
+out/
+__pycache__/
+*.pyc
+.git/
+.gitignore
+# Secrets are mounted at runtime via env_file, never baked into the image.
+.env
+README.md

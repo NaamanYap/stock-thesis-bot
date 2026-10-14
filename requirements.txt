@@ -1,0 +1,12 @@
+openai>=1.60.0
+claude-agent-sdk>=0.2.165
+python-telegram-bot[rate-limiter]>=21.6
+yfinance>=0.2.54
+ddgs>=9.0.0
+beautifulsoup4>=4.12.0
+lxml>=5.0.0
+requests>=2.31.0
+reportlab>=4.2.0
+python-dotenv>=1.0.1
+fastapi>=0.115.0
+uvicorn>=0.30.0

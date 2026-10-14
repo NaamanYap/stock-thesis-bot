@@ -1,0 +1,13 @@
+.venv/
+.env
+out/
+__pycache__/
+*.pyc
+.claude/settings.local.json
+
+# Replay files are committed; the PDFs a local run writes beside them are not.
+replays/*.pdf
+
+# Rewrites of saved pitches, for comparing versions of the writing steps.
+replays/rewrites/
+replays/assumptions/
