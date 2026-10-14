@@ -1,12 +1,6 @@
 # Stock Thesis Bot
 
-Message a Telegram bot a ticker, get back a full buy-side investment pitch: thesis pillars,
-competitive position, forecast build, a DCF with the model table, and a buy/hold/sell call.
-The chat gets a summary card; the full document arrives as a PDF.
-
-The house style is set by `prompts/exemplar.md`, the example pitch the bot is taught to write
-like. The file in this repo is a structural template; replace it with a finished pitch of your
-own to set the voice.
+I vibe-coded a Telegram bot using Claude Opus 5.5, in conjunction with inspiration from many other repos on a similar topic, to build a full buy-side investment pitch.
 
 ## How it works
 
@@ -25,30 +19,13 @@ The split matters: code reconciles reported figures by source and period, and co
 valuation; the model supplies judgement and the argument. A checked claim map comes before
 the full V1 prose, which retains the existing style and report depth.
 
-**Valuation coverage:** V1's enterprise DCF is for non-financial companies. Banks, insurers
+**Valuation coverage:** Enterprise DCF is for non-financial companies. Banks, insurers
 and mortgage-finance companies need an equity-based sector model because deposits, financial
 liabilities and receivables are operating items. The bot still researches and delivers a
 business and investment brief for those companies, with DCF valuation and rating clearly
 marked unavailable until a sector model exists.
 
-**The model never does the maths.** Its JSON header carries a `model` object of DCF inputs —
-revenue by segment, margin path, tax, D&A, capex, working capital, WACC, terminal growth or exit
-multiple (EV/EBIT or EV/EBITDA), bull and bear cases, and scenario probabilities. `valuation.py`
-computes free cash flow, present values, the bridge (with cash, debt,
-share count and FX from market data), the probability-weighted per-share value, the upside and the BUY/HOLD/SELL
-label, and renders the projection, DCF and valuation tables. Forecasts can span five to seven
-years. The prose cites computed values by
-placeholder (`{{intrinsic}}`, `{{fcf:FY2030}}`), so it cannot drift from them. Inputs outside
-sane bounds (WACC outside 6–14%, terminal growth above 4%, segments that do not add up, final-year
-D&A more than 5pp of revenue above capex, a terminal key the code does not read, a value more
-than 2x from both the price and the Street) are sent back for a fix, up to twice. The terminal
-value's implied EV/EBITDA is shown beside the peer median, and prompts steer regulated,
-asset-heavy businesses such as utilities to an EV/EBITDA exit. The `downside` inputs (a revenue
-cut, margins, capex, WACC, terminal) remain accepted as an alias for the bear case; both the
-bull and bear are priced like base, then weighted using the declared probabilities. This exists
-because the 2026-09-06 NVDA pitch, with the model doing its own
-sums, mis-added its discounted cash flows by $100bn and put a different price on the cover
-($225, HOLD) from the one its body concluded ($164, a SELL under its own rule).
+**The model never does the maths.** 
 
 **Two cross-checks sit beside the DCF**, both computed in code. A sensitivity grid shows the
 per-share value across WACC and terminal growth (or exit multiple), since with a five-year
@@ -62,10 +39,7 @@ P/E is the better comparison there.
 
 **Then the prose is checked.** `consistency.py` reads the finished text and reports any stated
 intrinsic price, upside, rating or forecast-year revenue, EBIT or free cash flow that the
-computed model contradicts. Localized problems go back as a keyed paragraph repair once; if
-the patch cannot be matched or a material issue remains, the best checked report is marked
-DRAFT on the PDF and Telegram card rather than sent through another full rewrite. Remaining
-checks are printed on the PDF cover and flagged on the Telegram card, never hidden.
+computed model contradicts. 
 
 **Then a reviewer challenges it.** A second model (`REVIEW_MODEL`, from a different family than
 the writer) reads the pitch as a PM would: unsupported assumptions, figures from weak sources, an
@@ -75,23 +49,7 @@ code checks. Unresolved high-severity issues mark the report **DRAFT** and appea
 **Reviewer notes** at the end of the PDF. A reviewer that times out or answers badly is skipped,
 never waited on.
 
-Research is done through **client-side tools**, not a hosted search product. NIM has no
-server-side web search, so `research_tools.py` gives the model two functions — `web_search`
-(Tavily when `TAVILY_API_KEY` is set, otherwise keyless DuckDuckGo and friends) and `fetch_page` (requests + BeautifulSoup) — and `pitch.py` runs the
-tool-calling loop. Without this the bot would write pitches from stale training data against a
-live share price, which is the single worst failure mode for this kind of document.
-
-Research has to read the company's own numbers. For SEC filers the bot reads the latest earnings
-release (8-K exhibit 99) and the latest 10-Q or 10-K from EDGAR itself before the model searches
-(needs `SEC_USER_AGENT`). The model is then sent back (at most twice) until it has read at least
-three filings, earnings releases or investor-relations pages in all (`MIN_PRIMARY_FETCHES`), and
-the write-up gets the company's own documents first in its notes. If the bounded research nudges
-still do not reach that source floor, the PDF and Telegram card are marked **DRAFT** and the
-shortfall is listed as an unresolved check.
-Social posts and document dumps (Facebook, LinkedIn, Scribd and similar) are excluded from search
-and refused by `fetch_page`, and the research notes tag every page PRIMARY or SECONDARY so the
-writer takes reported figures from the former. The write step is also given the sell-side
-consensus and must explain, in a **Versus consensus.** paragraph, where and why its value differs.
+Research is done through **client-side tools**, not a hosted search product. 
 
 | File | Role |
 | --- | --- |
@@ -332,30 +290,5 @@ OpenAI-compatible endpoint) works without code changes.
 
 ## Notes and limits
 
-- **Gemini's free tier allows 20 requests a day per model.** A pitch's research uses 7-10, so
-  about two pitches a day get the fast Gemini research. When a model's daily quota is spent the
-  bot skips it until midnight Pacific time and researches on `MODEL`, then `FALLBACK_MODEL`.
-  If every research model fails part-way, the pitch is written from what was already found.
-
-- **The numbers are model estimates.** The arithmetic is computed in code, but every input to
-  it — growth, margins, discount rate, terminal value — is the model's judgement. It is a
-  starting point for diligence, not a valuation you should act on. Every document carries this
-  disclaimer.
-- The checks catch contradictions, not wrong assumptions. A pitch can be internally consistent
-  and still wrong; the reviewer and the Versus consensus paragraph are there to make weak
-  assumptions visible, not to certify them.
-- A DCF on free cash flow does not suit banks or insurers, whose debt is operating capital.
-  `valuation_route.py` sends them to `valuation_equity.py`: the writer forecasts a bank's
-  earning assets, net interest margin, fees, efficiency ratio, loans and credit cost (an
-  insurer's premiums, combined ratio and investment yield), code builds net income, rolls book
-  value and CET1 forward, and values the equity as book plus discounted excess returns at the
-  cost of equity, checked against a dividend discount on the same inputs. Capital Markets,
-  Credit Services and Financial Conglomerates go this way only when total assets exceed 3.5x
-  revenue, so Visa or an asset-light dealer still gets the DCF; insurance brokers always do.
-- Keyless search (DuckDuckGo and friends) is unauthenticated and rate-limits hard, datacenter IPs
-  especially; Tavily's free tier is 1,000 searches a month. A failed search returns a message to
-  the model rather than an exception, so a pitch degrades instead of dying.
-- yfinance is an unofficial Yahoo Finance scraper. Gaps are surfaced to the model as "Data gaps"
-  rather than silently filled.
-- Coverage is best for US-listed large caps.
-- One pitch at a time per user; other users are served concurrently.
+- **Gemini's free tier allows 20 requests a day per model.** 
+- **The numbers are model estimates.** 
